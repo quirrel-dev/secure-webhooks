@@ -22,7 +22,7 @@ export function verify(
   input: string,
   secret: string,
   signature: string,
-  opts: { timeout?: number, timestamp?: number } = {}
+  opts: { timeout?: number; timestamp?: number } = {}
 ) {
   const match = /v=(\d+),d=([\da-f]+)/.exec(signature);
   if (!match) {
@@ -32,8 +32,8 @@ export function verify(
   const poststamp = Number(match[1]);
   const postDigest = match[2];
 
-  const timestamp = opts?.timestamp ?? Date.now()
-  const timeout = opts?.timeout ?? FIVE_MINUTES
+  const timestamp = opts?.timestamp ?? Date.now();
+  const timeout = opts?.timeout ?? FIVE_MINUTES;
 
   const difference = Math.abs(timestamp - poststamp);
   if (difference > timeout) {
