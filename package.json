@@ -33,7 +33,7 @@
   "author": "Simon Knott",
   "module": "dist/secure-webhooks.esm.js",
   "devDependencies": {
-    "@types/node": "^14.14.25",
+    "@types/node": "^14.14.27",
     "husky": "^4.3.8",
     "tsdx": "^0.13.3",
     "tslib": "^2.1.0",
