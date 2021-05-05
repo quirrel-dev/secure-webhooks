@@ -41,13 +41,13 @@ function getSigner(secretOrPrivateKey: string): (input: string) => string {
 function signWithPrivate(input: string, priv: string): string {
   return createSign('sha256')
     .update(input)
-    .sign(priv, 'hex');
+    .sign(priv, 'base64');
 }
 
 function verifyWithPublic(input: string, digest: string, pub: string): boolean {
   return createVerify('sha256')
     .update(input)
-    .verify(pub, digest, 'hex');
+    .verify(pub, digest, 'base64');
 }
 
 function getVerifier(
@@ -78,7 +78,12 @@ export function verify(
   signature: string,
   opts: { timeout?: number; timestamp?: number } = {}
 ) {
-  const match = /v=(\d+),d=([\da-f]+)/.exec(signature);
+  const useBase64 = isPublicKey(secretOrPublicKey);
+  const regex = useBase64
+    ? /v=(\d+),d=((?:[A-Za-z0-9+\/]{4})*(?:[A-Za-z0-9+\/]{2}==|[A-Za-z0-9+\/]{3}=)?)/
+    : /v=(\d+),d=([\da-f]+)/;
+  const match = regex.exec(signature);
+
   if (!match) {
     return false;
   }
