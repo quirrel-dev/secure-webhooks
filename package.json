@@ -28,7 +28,7 @@
   "author": "Simon Knott",
   "module": "dist/secure-webhooks.esm.js",
   "devDependencies": {
-    "@types/node": "^15.0.1",
+    "@types/node": "^15.0.2",
     "husky": "^6.0.0",
     "tsdx": "^0.14.1",
     "tslib": "^2.2.0",
