@@ -1,26 +1,80 @@
-import { createHmac } from 'crypto';
+import { createHmac, createSign, createVerify } from 'crypto';
 
 function getHmac(secret: string) {
   return createHmac('sha256', secret);
 }
 
+function isPrivateKey(secretOrPrivateKey: string): boolean {
+  return secretOrPrivateKey.includes('PRIVATE KEY');
+}
+
+function isPublicKey(secretOrPrivateKey: string): boolean {
+  return secretOrPrivateKey.includes('PUBLIC KEY');
+}
+
+function verifyWithSecret(
+  input: string,
+  digest: string,
+  secret: string
+): boolean {
+  return (
+    getHmac(secret)
+      .update(input)
+      .digest('hex') === digest
+  );
+}
+
+function signWithSecret(input: string, secret: string) {
+  return getHmac(secret)
+    .update(input)
+    .digest('hex');
+}
+
+function getSigner(secretOrPrivateKey: string): (input: string) => string {
+  if (isPrivateKey(secretOrPrivateKey)) {
+    return v => signWithPrivate(v, secretOrPrivateKey);
+  } else {
+    return v => signWithSecret(v, secretOrPrivateKey);
+  }
+}
+
+function signWithPrivate(input: string, priv: string): string {
+  return createSign('sha256')
+    .update(input)
+    .sign(priv, 'hex');
+}
+
+function verifyWithPublic(input: string, digest: string, pub: string): boolean {
+  return createVerify('sha256')
+    .update(input)
+    .verify(pub, digest, 'hex');
+}
+
+function getVerifier(
+  secretOrPublicKey: string
+): (input: string, digest: string) => boolean {
+  if (isPublicKey(secretOrPublicKey)) {
+    return (i, d) => verifyWithPublic(i, d, secretOrPublicKey);
+  } else {
+    return (i, d) => verifyWithSecret(i, d, secretOrPublicKey);
+  }
+}
+
 export function sign(
   input: string,
-  secret: string,
+  secretOrPrivateKey: string,
   timestamp: number = Date.now()
 ) {
-  const hmac = getHmac(secret);
+  const signer = getSigner(secretOrPrivateKey);
 
-  hmac.update(input + timestamp);
-
-  return `v=${timestamp},d=${hmac.digest('hex')}`;
+  return `v=${timestamp},d=${signer(input + timestamp)}`;
 }
 
 const FIVE_MINUTES = 5 * 60 * 1000;
 
 export function verify(
   input: string,
-  secret: string,
+  secretOrPublicKey: string,
   signature: string,
   opts: { timeout?: number; timestamp?: number } = {}
 ) {
@@ -40,8 +94,7 @@ export function verify(
     return false;
   }
 
-  const hmac = getHmac(secret);
-  hmac.update(input + poststamp);
+  const verifier = getVerifier(secretOrPublicKey);
 
-  return hmac.digest('hex') === postDigest;
+  return verifier(input + poststamp, postDigest);
 }
