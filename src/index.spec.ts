@@ -1,21 +1,26 @@
-import { sign, verify } from './';
+import { SecureWebhooks, symmetric, asymmetric } from './';
 
-function testWithKeyPair(pub: string, priv: string, expextedResult: string) {
+function testWithKeyPair(
+  swh: SecureWebhooks,
+  pub: string,
+  priv: string,
+  expextedResult: string
+) {
   const input = 'hello world';
   const timestamp = 1600000000000;
-  const signature = sign(input, priv, timestamp);
+  const signature = swh.sign(input, priv, timestamp);
   expect(signature).toEqual(expextedResult);
 
   // transmit input + signature over the wire
 
   const receivingTimestamp = timestamp + 60 * 1000;
 
-  const isValidIfWithinTimeout = verify(input, pub, signature, {
+  const isValidIfWithinTimeout = swh.verify(input, pub, signature, {
     timestamp: receivingTimestamp,
   });
   expect(isValidIfWithinTimeout).toBe(true);
 
-  const isValidIfOverTimeout = verify(input, pub, signature, {
+  const isValidIfOverTimeout = swh.verify(input, pub, signature, {
     timestamp: receivingTimestamp,
     timeout: 0.5 * 60 * 1000,
   });
@@ -25,6 +30,7 @@ function testWithKeyPair(pub: string, priv: string, expextedResult: string) {
 test('symmetric', () => {
   const secret = 'iamverysecret';
   testWithKeyPair(
+    symmetric,
     secret,
     secret,
     `v=1600000000000,d=3bd0b48300a7a7afc491e90ecef6805cb46813ea047434eed9cccc567f7aeecb`
@@ -102,6 +108,7 @@ yS6CCva4O1bQailhOWHMCXusEMvoSMCg7Xfs8bw1zEqkEGY6yvD3yDoHAOrkfJun
 `.trim();
 
   testWithKeyPair(
+    asymmetric,
     publicKey,
     privateKey,
     `v=1600000000000,d=OwH2f2zKu8DHzCrlFKW36VzOZG6hmhtMCN5kVqX3BQTFkjPl7cri4Ar+yky0nyPNYfZG+Q1Kf3fithV8ufy+q25TZC2IXyhPpnytZTfKptlpLT3BGJ0Q1TMx1gQXrEFN2kzl1pH5ertxN1MwYuUnQCwfwigALKeaStADSZAJVVS25Tp+6DB8OrNpywjeruQZ6fUIWtWcF9q2O987zj+uUqya4GvUsa1NI9PFIXUb82e6ZXpw+0fqLNsHLYj60YqdCfeivxs3O+HGJekvqwJuj/bPCftbDBT4Cj4s5sjFYHtV3Rf2ERzu0ycIJD4BXC3oOyek1PX5lbaIRL7JwMpTWir98FjWEbSSlNbNeR/EEzVtKGwgWcEAlO33H4sBKhc1/OPKcAyMU8NFuudeUSrGSNzl9+qLIJkX+oFyct5iksZPbiyypI2NsrTZcY4W6yOpb5lq8gmNu+N2GfwkK57oL0Kj4q+zZuVrGFRQYTrgWVHbJhMhFpnIKGnFg71oIkfqxjn6dWesADVVgKyLoQ0ZE8E/2kc8Kt+pgPkun/ywMfyItOf9AyIgultGsKyQgPpS3aIioJLExuicNsci7brbXJXMo+grccV7GhgDnbGLn1uLrtE0zCh9d/Op0czWKRbLVzCPNAKIYW1+hkaTNROGs/Cu7vhOy7g766YtEX6EWpo=`
