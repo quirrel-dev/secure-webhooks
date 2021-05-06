@@ -1,47 +1,86 @@
-import { createHmac } from 'crypto';
-
-function getHmac(secret: string) {
-  return createHmac('sha256', secret);
-}
-
-export function sign(
-  input: string,
-  secret: string,
-  timestamp: number = Date.now()
-) {
-  const hmac = getHmac(secret);
-
-  hmac.update(input + timestamp);
-
-  return `v=${timestamp},d=${hmac.digest('hex')}`;
-}
+import { createHmac, createSign, createVerify } from 'crypto';
 
 const FIVE_MINUTES = 5 * 60 * 1000;
 
-export function verify(
-  input: string,
-  secret: string,
-  signature: string,
-  opts: { timeout?: number; timestamp?: number } = {}
+function makeSecureWebhooks(
+  getSigner: (secretOrPrivateKey: string) => (input: string) => string,
+  getVerifier: (
+    secretOrPublicKey: string
+  ) => (input: string, digest: string) => boolean
 ) {
-  const match = /v=(\d+),d=([\da-f]+)/.exec(signature);
-  if (!match) {
-    return false;
-  }
+  return {
+    sign(
+      input: string,
+      secretOrPrivateKey: string,
+      timestamp: number = Date.now()
+    ): string {
+      const signer = getSigner(secretOrPrivateKey);
 
-  const poststamp = Number(match[1]);
-  const postDigest = match[2];
+      return `v=${timestamp},d=${signer(input + timestamp)}`;
+    },
+    verify(
+      input: string,
+      secret: string,
+      signature: string,
+      opts: { timeout?: number; timestamp?: number } = {}
+    ): boolean {
+      const match = /v=(\d+),d=(.*)/.exec(signature);
+      if (!match) {
+        return false;
+      }
 
-  const timestamp = opts?.timestamp ?? Date.now();
-  const timeout = opts?.timeout ?? FIVE_MINUTES;
+      const poststamp = Number(match[1]);
+      const postDigest = match[2];
 
-  const difference = Math.abs(timestamp - poststamp);
-  if (difference > timeout) {
-    return false;
-  }
+      const timestamp = opts?.timestamp ?? Date.now();
+      const timeout = opts?.timeout ?? FIVE_MINUTES;
 
-  const hmac = getHmac(secret);
-  hmac.update(input + poststamp);
+      const difference = Math.abs(timestamp - poststamp);
+      if (difference > timeout) {
+        return false;
+      }
 
-  return hmac.digest('hex') === postDigest;
+      const verifier = getVerifier(secret);
+
+      return verifier(input + poststamp, postDigest);
+    },
+  };
 }
+
+export type SecureWebhooks = ReturnType<typeof makeSecureWebhooks>;
+
+export const symmetric = makeSecureWebhooks(
+  secret => input =>
+    createHmac('sha256', secret)
+      .update(input)
+      .digest('hex'),
+  secret => (input, digest) =>
+    createHmac('sha256', secret)
+      .update(input)
+      .digest('hex') === digest
+);
+
+export const asymmetric = makeSecureWebhooks(
+  priv => input =>
+    createSign('sha256')
+      .update(input)
+      .sign(priv, 'base64'),
+  pub => (input, digest) =>
+    createVerify('sha256')
+      .update(input)
+      .verify(pub, digest, 'base64')
+);
+
+export const combined: SecureWebhooks = {
+  sign: (input, secretOrPrivateKey, timestamp) =>
+    secretOrPrivateKey.includes('PRIVATE KEY')
+      ? asymmetric.sign(input, secretOrPrivateKey, timestamp)
+      : symmetric.sign(input, secretOrPrivateKey, timestamp),
+  verify: (input, secretOrPublicKey, signature, opts) =>
+    secretOrPublicKey.includes('PUBLIC KEY')
+      ? asymmetric.verify(input, secretOrPublicKey, signature, opts)
+      : symmetric.verify(input, secretOrPublicKey, signature, opts),
+};
+
+export const sign = symmetric.sign;
+export const verify = symmetric.verify;
