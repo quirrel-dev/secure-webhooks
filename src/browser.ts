@@ -16,9 +16,17 @@ function timingSafeEqual(one: string, two: string): boolean {
   return !different;
 }
 
-// Borrowed from https://stackoverflow.com/a/40031979
+// Borrowed from https://github.com/LinusU/array-buffer-to-hex/blob/master/index.js
 function arrayBufferToHex(buffer: ArrayBuffer): string {
-  return [...new Uint8Array(buffer)].map(x => x.toString(16).padStart(2, '0')).join('');
+  const view = new Uint8Array(buffer);
+  let result = '';
+
+  for (let i = 0; i < view.length; i++) {
+    let value = view[i].toString(16)
+    result += (value.length === 1 ? '0' + value : value)
+  }
+
+  return result;
 }
 
 // Borrowed from https://stackoverflow.com/a/67082926
