@@ -6,4 +6,4 @@ import { symmetric, asymmetric } from './browser';
 // @ts-ignore
 window.crypto = new Crypto();
 
-runTests(symmetric, asymmetric, "only-pkcs8")
+runTests(symmetric, asymmetric, 'only-pkcs8');

@@ -1,4 +1,4 @@
-import { makeSecureWebhooks, SecureWebhooks } from "./base";
+import { makeSecureWebhooks, SecureWebhooks } from './base';
 
 // Borrowed and modified from https://github.com/lukeed/worktop/commit/200999a5fccea4cfd559a14d1aff6e191715f354
 function timingSafeEqual(one: string, two: string): boolean {
@@ -22,8 +22,8 @@ function arrayBufferToHex(buffer: ArrayBuffer): string {
   let result = '';
 
   for (let i = 0; i < view.length; i++) {
-    let value = view[i].toString(16)
-    result += (value.length === 1 ? '0' + value : value)
+    let value = view[i].toString(16);
+    result += value.length === 1 ? '0' + value : value;
   }
 
   return result;
@@ -41,23 +41,31 @@ function stringToArrayBuffer(str: string): ArrayBuffer {
   return buffer;
 }
 
-function stringToUint8Array(str: string, buffer = new ArrayBuffer(str.length)): Uint8Array {
+function stringToUint8Array(
+  str: string,
+  buffer = new ArrayBuffer(str.length)
+): Uint8Array {
   const bufferInterface = new Uint8Array(buffer);
-  Array.from(str).forEach((char, index: number) => bufferInterface[index] = char.charCodeAt(0));
+  Array.from(str).forEach(
+    (char, index: number) => (bufferInterface[index] = char.charCodeAt(0))
+  );
   return bufferInterface;
 }
-
 
 export const symmetric = makeSecureWebhooks(
   secret => async input => {
     const key = await crypto.subtle.importKey(
       'raw',
       stringToArrayBuffer(secret),
-      {name: 'HMAC', hash: 'SHA-256'},
+      { name: 'HMAC', hash: 'SHA-256' },
       false,
       ['sign']
     );
-    const computedSignature = await crypto.subtle.sign('HMAC', key, stringToArrayBuffer(input));
+    const computedSignature = await crypto.subtle.sign(
+      'HMAC',
+      key,
+      stringToArrayBuffer(input)
+    );
 
     return arrayBufferToHex(computedSignature);
   },
@@ -65,11 +73,15 @@ export const symmetric = makeSecureWebhooks(
     const key = await crypto.subtle.importKey(
       'raw',
       stringToArrayBuffer(secret),
-      {name: 'HMAC', hash: 'SHA-256'},
+      { name: 'HMAC', hash: 'SHA-256' },
       false,
       ['sign']
     );
-    const computedSignature = await crypto.subtle.sign('HMAC', key, stringToArrayBuffer(input));
+    const computedSignature = await crypto.subtle.sign(
+      'HMAC',
+      key,
+      stringToArrayBuffer(input)
+    );
     const signature = arrayBufferToHex(computedSignature);
 
     return timingSafeEqual(signature, digest);
@@ -78,10 +90,12 @@ export const symmetric = makeSecureWebhooks(
 
 export const asymmetric = makeSecureWebhooks(
   priv => async input => {
-    const decodedKey = atob(priv
-      .replace("-----BEGIN PRIVATE KEY-----", '')
-      .replace("-----END PRIVATE KEY-----", '')
-      .replace(/\n/g, ''));
+    const decodedKey = atob(
+      priv
+        .replace('-----BEGIN PRIVATE KEY-----', '')
+        .replace('-----END PRIVATE KEY-----', '')
+        .replace(/\n/g, '')
+    );
 
     // IMPORTANT: Test keys had to be converted to PKCS#8 because subtle crypto does not support PKCS#1
     const key = await crypto.subtle.importKey(
@@ -92,14 +106,20 @@ export const asymmetric = makeSecureWebhooks(
       ['sign']
     );
 
-    const computedSignature = await crypto.subtle.sign('RSASSA-PKCS1-v1_5', key, stringToArrayBuffer(input));
+    const computedSignature = await crypto.subtle.sign(
+      'RSASSA-PKCS1-v1_5',
+      key,
+      stringToArrayBuffer(input)
+    );
     return btoa(arrayBufferToString(computedSignature));
   },
   pub => async (input, digest) => {
-    const decodedKey = atob(pub
-      .replace("-----BEGIN PUBLIC KEY-----", '')
-      .replace("-----END PUBLIC KEY-----", '')
-      .replace(/\n/g, ''));
+    const decodedKey = atob(
+      pub
+        .replace('-----BEGIN PUBLIC KEY-----', '')
+        .replace('-----END PUBLIC KEY-----', '')
+        .replace(/\n/g, '')
+    );
 
     const key = await crypto.subtle.importKey(
       'spki',
