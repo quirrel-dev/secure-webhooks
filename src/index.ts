@@ -2,22 +2,22 @@ import { createHmac, createSign, createVerify } from 'crypto';
 import { makeSecureWebhooks, SecureWebhooks } from './base';
 
 export const symmetric = makeSecureWebhooks(
-  secret => input =>
+  secret => async input =>
     createHmac('sha256', secret)
       .update(input)
       .digest('hex'),
-  secret => (input, digest) =>
+  secret => async (input, digest) =>
     createHmac('sha256', secret)
       .update(input)
       .digest('hex') === digest
 );
 
 export const asymmetric = makeSecureWebhooks(
-  priv => input =>
+  priv => async input =>
     createSign('sha256')
       .update(input)
       .sign(priv, 'base64'),
-  pub => (input, digest) =>
+  pub => async (input, digest) =>
     createVerify('sha256')
       .update(input)
       .verify(pub, digest, 'base64')
