@@ -97,7 +97,6 @@ export const asymmetric = makeSecureWebhooks(
         .replace(/\n/g, '')
     );
 
-    // IMPORTANT: Test keys had to be converted to PKCS#8 because subtle crypto does not support PKCS#1
     const key = await crypto.subtle.importKey(
       'pkcs8',
       stringToUint8Array(decodedKey),
