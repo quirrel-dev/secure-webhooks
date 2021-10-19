@@ -4,7 +4,7 @@ export function runTests(
   symmetric: SecureWebhooks,
   asymmetric: SecureWebhooks
 ) {
-  function testWithKeyPair(
+  async function testWithKeyPair(
     swh: SecureWebhooks,
     pub: string,
     priv: string,
@@ -12,28 +12,28 @@ export function runTests(
   ) {
     const input = 'hello world';
     const timestamp = 1600000000000;
-    const signature = swh.sign(input, priv, timestamp);
+    const signature = await swh.sign(input, priv, timestamp);
     expect(signature).toEqual(expextedResult);
 
     // transmit input + signature over the wire
 
     const receivingTimestamp = timestamp + 60 * 1000;
 
-    const isValidIfWithinTimeout = swh.verify(input, pub, signature, {
+    const isValidIfWithinTimeout = await swh.verify(input, pub, signature, {
       timestamp: receivingTimestamp,
     });
     expect(isValidIfWithinTimeout).toBe(true);
 
-    const isValidIfOverTimeout = swh.verify(input, pub, signature, {
+    const isValidIfOverTimeout = await swh.verify(input, pub, signature, {
       timestamp: receivingTimestamp,
       timeout: 0.5 * 60 * 1000,
     });
     expect(isValidIfOverTimeout).toBe(false);
   }
 
-  test('symmetric', () => {
+  test('symmetric', async () => {
     const secret = 'iamverysecret';
-    testWithKeyPair(
+    await testWithKeyPair(
       symmetric,
       secret,
       secret,
@@ -41,7 +41,7 @@ export function runTests(
     );
   });
 
-  test('asymmetric', () => {
+  test('asymmetric', async () => {
     const publicKey = `
 -----BEGIN RSA PUBLIC KEY-----
 MIICCgKCAgEAqmeVACnRiy7Em4TJ2hevBQJek3ryctBaMQZKULAUg/+3Gk3CNgY/
@@ -111,7 +111,7 @@ yS6CCva4O1bQailhOWHMCXusEMvoSMCg7Xfs8bw1zEqkEGY6yvD3yDoHAOrkfJun
 -----END RSA PRIVATE KEY-----
   `.trim();
 
-    testWithKeyPair(
+    await testWithKeyPair(
       asymmetric,
       publicKey,
       privateKey,

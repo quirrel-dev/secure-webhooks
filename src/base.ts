@@ -1,27 +1,27 @@
 const FIVE_MINUTES = 5 * 60 * 1000;
 
 export function makeSecureWebhooks(
-  getSigner: (secretOrPrivateKey: string) => (input: string) => string,
+  getSigner: (secretOrPrivateKey: string) => (input: string) => Promise<string>,
   getVerifier: (
     secretOrPublicKey: string
-  ) => (input: string, digest: string) => boolean
+  ) => (input: string, digest: string) => Promise<boolean>
 ) {
   return {
-    sign(
+    async sign(
       input: string,
       secretOrPrivateKey: string,
       timestamp: number = Date.now()
-    ): string {
+    ): Promise<string> {
       const signer = getSigner(secretOrPrivateKey);
 
-      return `v=${timestamp},d=${signer(input + timestamp)}`;
+      return `v=${timestamp},d=${await signer(input + timestamp)}`;
     },
-    verify(
+    async verify(
       input: string,
       secret: string,
       signature: string,
       opts: { timeout?: number; timestamp?: number } = {}
-    ): boolean {
+    ): Promise<boolean> {
       const match = /v=(\d+),d=(.*)/.exec(signature);
       if (!match) {
         return false;
@@ -40,7 +40,7 @@ export function makeSecureWebhooks(
 
       const verifier = getVerifier(secret);
 
-      return verifier(input + poststamp, postDigest);
+      return await verifier(input + poststamp, postDigest);
     },
   };
 }
