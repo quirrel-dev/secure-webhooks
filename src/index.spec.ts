@@ -1,4 +1,4 @@
 import { symmetric, asymmetric } from './';
 import { runTests } from './base_spec';
 
-runTests(symmetric, asymmetric);
+runTests(symmetric, asymmetric, 'both');
